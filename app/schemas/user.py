@@ -1,13 +1,13 @@
 from typing import Self
 
-from pydantic import Field, model_validator
+from pydantic import EmailStr, Field, model_validator
 
 from app.schemas.base import CamelModel
 
 
 class UserProfileSchema(CamelModel):
     id: str = Field(examples=["uuid"])
-    email: str = Field(examples=["user@example.com"])
+    email: EmailStr = Field(examples=["user@example.com"])
     nickname: str = Field(examples=["jfh"])
     profile_image_url: str | None = Field(default=None, examples=["https://cdn.example.com/profiles/1.png"])
 
