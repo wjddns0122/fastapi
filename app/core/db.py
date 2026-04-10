@@ -1,4 +1,7 @@
-from sqlalchemy import create_engine
+from collections.abc import Callable
+
+from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from app.core.config import settings
@@ -10,3 +13,50 @@ if settings.database_url.startswith("sqlite"):
 engine = create_engine(settings.database_url, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+
+def initialize_database(target_engine: Engine | None = None) -> None:
+    current_engine = target_engine or engine
+    Base.metadata.create_all(bind=current_engine)
+    apply_runtime_migrations(target_engine=current_engine)
+
+
+def apply_runtime_migrations(target_engine: Engine | None = None) -> None:
+    current_engine = target_engine or engine
+    inspector = inspect(current_engine)
+
+    migrations: list[Callable[[Engine], None]] = [
+        lambda migration_engine: _ensure_column_exists(
+            target_engine=migration_engine,
+            inspector=inspector,
+            table_name="relationships",
+            column_name="base_score",
+            column_sql="INTEGER",
+        ),
+    ]
+
+    for migration in migrations:
+        migration(current_engine)
+
+
+def _ensure_column_exists(
+    target_engine: Engine,
+    inspector,
+    table_name: str,
+    column_name: str,
+    column_sql: str,
+) -> None:
+    if not inspector.has_table(table_name):
+        return
+
+    existing_columns = {
+        column["name"]
+        for column in inspector.get_columns(table_name)
+    }
+    if column_name in existing_columns:
+        return
+
+    with target_engine.begin() as connection:
+        connection.execute(
+            text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_sql}"),
+        )

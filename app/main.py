@@ -4,7 +4,6 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 
 from app.api.v1.api import api_router
-from app.core.db import Base, engine
 from app.core.exceptions import AppException
 from app.core.response import error_response, success_response
 from app.models import daily_compatibility as daily_compatibility_model
@@ -80,8 +79,6 @@ app = FastAPI(
     license_info={"name": "Private"},
 )
 app.include_router(api_router)
-
-Base.metadata.create_all(bind=engine)
 
 
 @app.exception_handler(AppException)
