@@ -157,7 +157,18 @@ docker run -p 8000:8000 --env-file .env today-compatibility
 
 ```bash
 pip install -r requirements.txt
+alembic upgrade head
 uvicorn app.main:app --reload --port 8000
+```
+
+### 3-1. 마이그레이션
+
+```bash
+# 최신 스키마 반영
+alembic upgrade head
+
+# 새 리비전 생성
+alembic revision -m "add_xxx"
 ```
 
 ### 4. API 문서 확인

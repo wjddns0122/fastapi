@@ -32,6 +32,7 @@ class Relationship(Base):
     )
     relationship_type: Mapped[str] = mapped_column(String(20), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    base_score: Mapped[int | None] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         nullable=False,

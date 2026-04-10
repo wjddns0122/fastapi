@@ -18,6 +18,9 @@ class Settings:
     supabase_request_timeout_seconds: float = float(
         os.getenv("SUPABASE_REQUEST_TIMEOUT_SECONDS", "10"),
     )
+    compatibility_refresh_token: str | None = os.getenv(
+        "COMPATIBILITY_REFRESH_TOKEN",
+    )
 
 
 settings = Settings()
