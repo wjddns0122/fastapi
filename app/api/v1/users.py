@@ -4,6 +4,7 @@ from app.adapters.storage_client import SupabaseStorageClient
 from app.api.deps import get_current_user, get_storage_client, get_user_service
 from app.core.response import success_response
 from app.models.user import User
+from app.schemas.common import SuccessResponseSchema
 from app.schemas.user import (
     ProfileImagePresignRequestSchema,
     ProfileImagePresignResponseSchema,
@@ -15,7 +16,29 @@ from app.services.user_service import UserService
 router = APIRouter()
 
 
-@router.patch("/me")
+@router.patch(
+    "/me",
+    response_model=SuccessResponseSchema[UserProfileSchema],
+    responses={
+        200: {
+            "description": "프로필 수정 성공",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": True,
+                        "data": {
+                            "id": "uuid",
+                            "email": "user@example.com",
+                            "nickname": "new_nickname",
+                            "profileImageUrl": "https://cdn.example.com/profiles/new.png",
+                        },
+                        "message": "프로필이 수정되었습니다.",
+                    }
+                }
+            },
+        }
+    },
+)
 def update_me(
     request: UpdateMeRequestSchema,
     current_user: User = Depends(get_current_user),
@@ -32,7 +55,28 @@ def update_me(
     )
 
 
-@router.post("/me/profile-image/presign")
+@router.post(
+    "/me/profile-image/presign",
+    response_model=SuccessResponseSchema[ProfileImagePresignResponseSchema],
+    responses={
+        200: {
+            "description": "업로드 URL 발급 성공",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "success": True,
+                        "data": {
+                            "fileKey": "profiles/user-uuid/20260410-profile.png",
+                            "uploadUrl": "https://s3-presigned-url",
+                            "publicUrl": "https://cdn.example.com/profiles/user-uuid/20260410-profile.png",
+                        },
+                        "message": "업로드 URL이 발급되었습니다.",
+                    }
+                }
+            },
+        }
+    },
+)
 def create_profile_image_presign(
     request: ProfileImagePresignRequestSchema,
     current_user: User = Depends(get_current_user),

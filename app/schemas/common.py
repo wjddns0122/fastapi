@@ -1,12 +1,13 @@
-from typing import Any
-
 from app.schemas.base import CamelModel
+from typing import Any, Generic, TypeVar
+from pydantic import Field
 
+T = TypeVar("T")
 
-class SuccessResponseSchema(CamelModel):
-    success: bool = True
-    data: Any
-    message: str = "OK"
+class SuccessResponseSchema(CamelModel, Generic[T]):
+    success: bool = Field(default=True, examples=[True])
+    data: T
+    message: str = Field(default="OK", examples=["OK"])
 
 
 class ErrorDetailSchema(CamelModel):
