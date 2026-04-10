@@ -1,11 +1,12 @@
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import ConfigDict, Field
 
 from app.schemas.base import CamelModel
 
 RelationshipType = Literal["couple", "situationship", "friend"]
-RelationshipStatus = Literal["pending", "active"]
+RelationshipStatus = Literal["pending", "accepted", "rejected"]
+RelationshipFilter = Literal["sent", "received"]
 
 
 class CreateRelationshipRequestSchema(CamelModel):
@@ -30,7 +31,7 @@ class CreateRelationshipRequestSchema(CamelModel):
 
 
 class RelationshipCreateResponseSchema(CamelModel):
-    """관계 생성 응답 스키마"""
+    """관계 생성/수정 응답 스키마"""
     model_config = ConfigDict(
         alias_generator=CamelModel.model_config.get("alias_generator"),
         populate_by_name=True,
@@ -49,7 +50,10 @@ class RelationshipCreateResponseSchema(CamelModel):
         description="관계 유형 (couple: 연인, situationship: 썸, friend: 친구)",
         examples=["couple"],
     )
-    status: RelationshipStatus = Field(description="관계 상태 (pending/active)", examples=["pending"])
+    status: RelationshipStatus = Field(
+        description="관계 상태 (pending: 대기, accepted: 수락, rejected: 거절)",
+        examples=["pending"],
+    )
 
 
 class RelationshipPartnerSchema(CamelModel):
@@ -67,7 +71,7 @@ class RelationshipListItemSchema(CamelModel):
             "example": {
                 "id": "uuid",
                 "relationshipType": "couple",
-                "status": "active",
+                "status": "accepted",
                 "partner": {
                     "id": "uuid",
                     "nickname": "partner",
@@ -81,5 +85,8 @@ class RelationshipListItemSchema(CamelModel):
         description="관계 유형 (couple: 연인, situationship: 썸, friend: 친구)",
         examples=["couple"],
     )
-    status: RelationshipStatus = Field(description="관계 상태", examples=["active"])
+    status: RelationshipStatus = Field(
+        description="관계 상태 (pending: 대기, accepted: 수락, rejected: 거절)",
+        examples=["accepted"],
+    )
     partner: RelationshipPartnerSchema = Field(description="상대방 정보")
