@@ -9,6 +9,7 @@ RelationshipStatus = Literal["pending", "active"]
 
 
 class CreateRelationshipRequestSchema(CamelModel):
+    """관계(친구/연인 등) 생성 요청 스키마"""
     model_config = ConfigDict(
         alias_generator=CamelModel.model_config.get("alias_generator"),
         populate_by_name=True,
@@ -21,11 +22,15 @@ class CreateRelationshipRequestSchema(CamelModel):
         },
     )
 
-    target_user_id: str = Field(examples=["uuid"])
-    relationship_type: RelationshipType = Field(examples=["couple"])
+    target_user_id: str = Field(description="대상 사용자 UUID", examples=["uuid"])
+    relationship_type: RelationshipType = Field(
+        description="관계 유형 (couple: 연인, situationship: 썸, friend: 친구)",
+        examples=["couple"],
+    )
 
 
 class RelationshipCreateResponseSchema(CamelModel):
+    """관계 생성 응답 스키마"""
     model_config = ConfigDict(
         alias_generator=CamelModel.model_config.get("alias_generator"),
         populate_by_name=True,
@@ -39,9 +44,12 @@ class RelationshipCreateResponseSchema(CamelModel):
         },
     )
 
-    id: str = Field(examples=["uuid"])
-    relationship_type: RelationshipType = Field(examples=["couple"])
-    status: RelationshipStatus = Field(examples=["pending"])
+    id: str = Field(description="관계 UUID", examples=["uuid"])
+    relationship_type: RelationshipType = Field(
+        description="관계 유형 (couple: 연인, situationship: 썸, friend: 친구)",
+        examples=["couple"],
+    )
+    status: RelationshipStatus = Field(description="관계 상태 (pending/active)", examples=["pending"])
 
 
 class RelationshipPartnerSchema(CamelModel):
@@ -50,6 +58,7 @@ class RelationshipPartnerSchema(CamelModel):
 
 
 class RelationshipListItemSchema(CamelModel):
+    """관계 목록 아이템 스키마"""
     model_config = ConfigDict(
         alias_generator=CamelModel.model_config.get("alias_generator"),
         populate_by_name=True,
@@ -67,7 +76,10 @@ class RelationshipListItemSchema(CamelModel):
         },
     )
 
-    id: str = Field(examples=["uuid"])
-    relationship_type: RelationshipType = Field(examples=["couple"])
-    status: RelationshipStatus = Field(examples=["active"])
-    partner: RelationshipPartnerSchema
+    id: str = Field(description="관계 UUID", examples=["uuid"])
+    relationship_type: RelationshipType = Field(
+        description="관계 유형 (couple: 연인, situationship: 썸, friend: 친구)",
+        examples=["couple"],
+    )
+    status: RelationshipStatus = Field(description="관계 상태", examples=["active"])
+    partner: RelationshipPartnerSchema = Field(description="상대방 정보")

@@ -5,9 +5,10 @@ from pydantic import Field
 T = TypeVar("T")
 
 class SuccessResponseSchema(CamelModel, Generic[T]):
-    success: bool = Field(default=True, examples=[True])
-    data: T
-    message: str = Field(default="OK", examples=["OK"])
+    """성공 응답 스키마"""
+    success: bool = Field(default=True, description="성공 여부", examples=[True])
+    data: T = Field(description="응답 데이터")
+    message: str = Field(default="OK", description="응답 메시지", examples=["OK"])
 
 
 class ErrorDetailSchema(CamelModel):
