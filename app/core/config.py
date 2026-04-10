@@ -1,6 +1,10 @@
 from dataclasses import dataclass
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -11,6 +15,12 @@ class Settings:
     )
     refresh_token_expire_minutes: int = int(
         os.getenv("REFRESH_TOKEN_EXPIRE_MINUTES", str(60 * 24 * 14)),
+    )
+    supabase_url: str | None = os.getenv("SUPABASE_URL")
+    supabase_service_role_key: str | None = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    supabase_storage_bucket: str = os.getenv("SUPABASE_STORAGE_BUCKET", "fastapi")
+    supabase_request_timeout_seconds: float = float(
+        os.getenv("SUPABASE_REQUEST_TIMEOUT_SECONDS", "10"),
     )
 
 

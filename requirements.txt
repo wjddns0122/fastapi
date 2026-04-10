@@ -4,3 +4,4 @@ pytest
 python-dotenv
 sqlalchemy
 email-validator
+httpx

@@ -9,9 +9,9 @@ from app.schemas.auth import (
     RefreshTokenRequestSchema,
     RefreshTokenResponseSchema,
     SignUpRequestSchema,
-    UserProfileSchema,
     UserWithTokensResponseSchema,
 )
+from app.schemas.user import UserProfileSchema
 from app.services.auth_service import AuthService
 
 router = APIRouter()

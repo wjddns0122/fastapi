@@ -1,6 +1,7 @@
 from pydantic import EmailStr, Field
 
 from app.schemas.base import CamelModel
+from app.schemas.user import UserProfileSchema
 
 
 class SignUpRequestSchema(CamelModel):
@@ -16,13 +17,6 @@ class LoginRequestSchema(CamelModel):
 
 class RefreshTokenRequestSchema(CamelModel):
     refresh_token: str
-
-
-class UserProfileSchema(CamelModel):
-    id: str
-    email: EmailStr
-    nickname: str
-    profile_image_url: str | None = None
 
 
 class AuthTokensSchema(CamelModel):
