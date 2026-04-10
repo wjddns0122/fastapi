@@ -7,6 +7,7 @@ from app.api.v1.api import api_router
 from app.core.db import Base, engine
 from app.core.exceptions import AppException
 from app.core.response import error_response, success_response
+from app.models import relationship as relationship_model
 from app.models import user as user_model
 
 load_dotenv()
