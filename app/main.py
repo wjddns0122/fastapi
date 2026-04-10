@@ -1,4 +1,6 @@
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 
 from app.api.v1.api import api_router
@@ -6,6 +8,8 @@ from app.core.db import Base, engine
 from app.core.exceptions import AppException
 from app.core.response import error_response, success_response
 from app.models import user as user_model
+
+load_dotenv()
 
 app = FastAPI(title="Backend FastAPI")
 app.include_router(api_router)
@@ -34,7 +38,7 @@ async def request_validation_exception_handler(
         code="VALIDATION_ERROR",
         message="요청 데이터를 확인해주세요.",
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        details=exc.errors(),
+        details=jsonable_encoder(exc.errors()),
     )
 
 
