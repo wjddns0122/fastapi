@@ -140,3 +140,69 @@ def test_specialized_activity_endpoints_record_expected_event(
     body = response.json()
     assert body["success"] is True
     assert body["data"]["eventType"] == expected_event_type
+
+
+def test_duplicate_activity_is_rejected(client):
+    relationship_id, requester_access_token, _ = _create_accepted_relationship(client)
+
+    client.post(
+        f"/relationships/{relationship_id}/activities",
+        headers={"Authorization": f"Bearer {requester_access_token}"},
+        json={"eventType": "avatar_changed", "metadata": {"itemKey": "spring-jacket"}},
+    )
+    response = client.post(
+        f"/relationships/{relationship_id}/activities",
+        headers={"Authorization": f"Bearer {requester_access_token}"},
+        json={"eventType": "avatar_changed", "metadata": {"itemKey": "other-jacket"}},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "CONFLICT"
+
+
+def test_list_my_activities_returns_recorded_events(client):
+    relationship_id, requester_access_token, _ = _create_accepted_relationship(client)
+
+    client.post(
+        f"/relationships/{relationship_id}/activities",
+        headers={"Authorization": f"Bearer {requester_access_token}"},
+        json={"eventType": "letter_sent"},
+    )
+    client.post(
+        f"/relationships/{relationship_id}/activities",
+        headers={"Authorization": f"Bearer {requester_access_token}"},
+        json={"eventType": "shop_visited"},
+    )
+
+    response = client.get(
+        "/activities/me",
+        headers={"Authorization": f"Bearer {requester_access_token}"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["success"] is True
+    assert len(body["data"]) == 2
+    event_types = {item["eventType"] for item in body["data"]}
+    assert event_types == {"letter_sent", "shop_visited"}
+
+
+def test_list_my_activities_filters_by_relationship(client):
+    relationship_id, requester_access_token, _ = _create_accepted_relationship(client)
+
+    client.post(
+        f"/relationships/{relationship_id}/activities",
+        headers={"Authorization": f"Bearer {requester_access_token}"},
+        json={"eventType": "letter_sent"},
+    )
+
+    response = client.get(
+        "/activities/me",
+        params={"relationshipId": relationship_id},
+        headers={"Authorization": f"Bearer {requester_access_token}"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["success"] is True
+    assert all(item["relationshipId"] == relationship_id for item in body["data"])

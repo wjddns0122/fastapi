@@ -4,8 +4,6 @@ import hashlib
 from dataclasses import dataclass
 from datetime import date
 
-from app.models.relationship import Relationship
-
 
 @dataclass(frozen=True)
 class TarotResult:

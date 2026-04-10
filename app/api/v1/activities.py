@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.api.deps import get_activity_service, get_current_user
 from app.core.response import success_response
@@ -17,6 +17,35 @@ from app.schemas.common import SuccessResponseSchema
 from app.services.activity_service import ActivityService
 
 router = APIRouter()
+
+
+@router.get(
+    "/activities/me",
+    summary="내 활동 목록 조회",
+    description=(
+        "현재 로그인한 사용자가 기록한 활동 이벤트 목록을 반환합니다.\n\n"
+        "- `relationshipId` 쿼리 파라미터로 특정 관계의 활동만 필터링할 수 있습니다.\n"
+        "- `limit`/`offset` 으로 페이지네이션을 지원합니다."
+    ),
+    response_model=SuccessResponseSchema[list[RelationshipActivityResponseSchema]],
+)
+def list_my_activities(
+    relationship_id: str | None = Query(default=None, alias="relationshipId"),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    current_user: User = Depends(get_current_user),
+    activity_service: ActivityService = Depends(get_activity_service),
+):
+    activities = activity_service.list_my_activities(
+        current_user=current_user,
+        relationship_id=relationship_id,
+        limit=limit,
+        offset=offset,
+    )
+    return success_response(
+        data=[RelationshipActivityResponseSchema.model_validate(a) for a in activities],
+        message="OK",
+    )
 
 
 def _record_activity_response(

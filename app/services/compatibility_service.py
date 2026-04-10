@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import AppException
@@ -157,7 +158,15 @@ class CompatibilityService:
             record.behavior_snapshot = behavior_metrics
 
         self.db.add(record)
-        self.db.commit()
+        try:
+            self.db.commit()
+        except IntegrityError:
+            self.db.rollback()
+            record = self.get_by_relationship_and_date(
+                relationship_id=relationship.id,
+                target_date=target_date,
+            )
+            return record
         self.db.refresh(record)
         return record
 

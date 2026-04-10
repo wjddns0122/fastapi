@@ -1,5 +1,3 @@
-from datetime import date
-
 from fastapi import APIRouter, Depends, Header
 
 from app.api.deps import get_compatibility_service, get_current_user
@@ -74,7 +72,7 @@ def refresh_today_compatibility(
     current_user: User = Depends(get_current_user),
     compatibility_service: CompatibilityService = Depends(get_compatibility_service),
 ):
-    if x_internal_token != settings.compatibility_refresh_token:
+    if settings.compatibility_refresh_token is None or x_internal_token != settings.compatibility_refresh_token:
         raise AppException(
             code="FORBIDDEN",
             message="궁합 재계산 권한이 없습니다.",

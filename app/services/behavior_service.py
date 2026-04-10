@@ -18,15 +18,13 @@ class BehaviorService:
         relationship: Relationship,
         target_date: date,
     ) -> dict[str, int | bool]:
-        one_day_start = target_date - timedelta(days=1)
         seven_day_start = target_date - timedelta(days=6)
 
-        recent_activities = (
+        today_activities = (
             self.db.query(RelationshipActivity)
             .filter(
                 RelationshipActivity.relationship_id == relationship.id,
-                RelationshipActivity.occurred_on >= one_day_start,
-                RelationshipActivity.occurred_on <= target_date,
+                RelationshipActivity.occurred_on == target_date,
             )
             .all()
         )
@@ -51,11 +49,6 @@ class BehaviorService:
             relationship.requester_user_id,
             relationship.target_user_id,
         }
-        today_activities = [
-            activity
-            for activity in recent_activities
-            if activity.occurred_on == target_date
-        ]
         checkin_user_ids = {
             activity.actor_user_id
             for activity in today_activities
@@ -73,15 +66,15 @@ class BehaviorService:
         )
 
         return {
-            "letters_sent_last_1d": self._count_events(recent_activities, "letter_sent"),
-            "letters_opened_last_1d": self._count_events(recent_activities, "letter_opened"),
-            "daily_quests_completed_last_1d": self._count_events(recent_activities, "daily_quest_completed"),
+            "letters_sent_last_1d": self._count_events(today_activities, "letter_sent"),
+            "letters_opened_last_1d": self._count_events(today_activities, "letter_opened"),
+            "daily_quests_completed_last_1d": self._count_events(today_activities, "daily_quest_completed"),
             "weekly_quests_completed_last_7d": self._count_events(weekly_activities, "weekly_quest_completed"),
-            "shop_visits_last_1d": self._count_events(recent_activities, "shop_visited"),
-            "avatar_changes_last_1d": self._count_events(recent_activities, "avatar_changed"),
-            "couple_items_equipped_last_1d": self._count_events(recent_activities, "couple_item_equipped"),
+            "shop_visits_last_1d": self._count_events(today_activities, "shop_visited"),
+            "avatar_changes_last_1d": self._count_events(today_activities, "avatar_changed"),
+            "couple_items_equipped_last_1d": self._count_events(today_activities, "couple_item_equipped"),
             "pair_matching_outfit": couple_item_user_ids == participants,
-            "checkins_completed_last_1d": self._count_events(recent_activities, "checkin_completed"),
+            "checkins_completed_last_1d": self._count_events(today_activities, "checkin_completed"),
             "pair_checkins_completed_last_1d": checkin_user_ids == participants,
             "streak_days": streak_days,
             "inactive_days": inactive_days,
@@ -91,26 +84,25 @@ class BehaviorService:
         self,
         relationship_id: str,
         target_date: date,
+        max_lookback_days: int = 365,
     ) -> int:
+        oldest = target_date - timedelta(days=max_lookback_days - 1)  # inclusive range
+        active_dates = {
+            row[0]
+            for row in self.db.query(RelationshipActivity.occurred_on)
+            .filter(
+                RelationshipActivity.relationship_id == relationship_id,
+                RelationshipActivity.occurred_on >= oldest,
+                RelationshipActivity.occurred_on <= target_date,
+            )
+            .distinct()
+            .all()
+        }
         streak_days = 0
         current_date = target_date
-
-        while True:
-            has_activity = (
-                self.db.query(RelationshipActivity.id)
-                .filter(
-                    RelationshipActivity.relationship_id == relationship_id,
-                    RelationshipActivity.occurred_on == current_date,
-                )
-                .first()
-                is not None
-            )
-            if not has_activity:
-                break
-
+        while current_date in active_dates:
             streak_days += 1
             current_date -= timedelta(days=1)
-
         return streak_days
 
     @staticmethod

@@ -45,14 +45,53 @@ class ActivityService:
                 status_code=409,
             )
 
+        effective_date = occurred_on or get_seoul_today()
+
+        duplicate = (
+            self.db.query(RelationshipActivity)
+            .filter(
+                RelationshipActivity.relationship_id == relationship.id,
+                RelationshipActivity.actor_user_id == current_user.id,
+                RelationshipActivity.event_type == event_type,
+                RelationshipActivity.occurred_on == effective_date,
+            )
+            .first()
+        )
+        if duplicate is not None:
+            raise AppException(
+                code="CONFLICT",
+                message="동일한 날짜에 이미 기록된 활동입니다.",
+                status_code=409,
+            )
+
         activity = RelationshipActivity(
             relationship_id=relationship.id,
             actor_user_id=current_user.id,
             event_type=event_type,
-            occurred_on=occurred_on or get_seoul_today(),
+            occurred_on=effective_date,
             event_metadata=metadata,
         )
         self.db.add(activity)
         self.db.commit()
         self.db.refresh(activity)
         return activity
+
+    def list_my_activities(
+        self,
+        current_user: User,
+        relationship_id: str | None = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> list[RelationshipActivity]:
+        query = self.db.query(RelationshipActivity).filter(
+            RelationshipActivity.actor_user_id == current_user.id,
+        )
+        if relationship_id is not None:
+            query = query.filter(RelationshipActivity.relationship_id == relationship_id)
+        return (
+            query
+            .order_by(RelationshipActivity.occurred_on.desc(), RelationshipActivity.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )

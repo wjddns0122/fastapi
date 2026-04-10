@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from app.core.config import settings
 
 
@@ -129,13 +131,16 @@ def test_refresh_today_compatibility_requires_internal_token(client):
 def test_refresh_today_compatibility_returns_daily_record(client):
     relationship_id, requester_access_token, _ = _create_accepted_relationship(client)
 
-    response = client.post(
-        f"/compatibility/today/{relationship_id}/refresh",
-        headers={
-            "Authorization": f"Bearer {requester_access_token}",
-            "X-Internal-Token": settings.compatibility_refresh_token,
-        },
-    )
+    test_token = "test-internal-token"
+    with patch("app.api.v1.compatibility.settings") as mock_settings:
+        mock_settings.compatibility_refresh_token = test_token
+        response = client.post(
+            f"/compatibility/today/{relationship_id}/refresh",
+            headers={
+                "Authorization": f"Bearer {requester_access_token}",
+                "X-Internal-Token": test_token,
+            },
+        )
 
     assert response.status_code == 200
     body = response.json()
