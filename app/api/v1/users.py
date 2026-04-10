@@ -18,6 +18,8 @@ router = APIRouter()
 
 @router.patch(
     "/me",
+    summary="내 정보 수정",
+    description="로그인한 사용자의 닉네임이나 프로필 이미지를 수정합니다.",
     response_model=SuccessResponseSchema[UserProfileSchema],
     responses={
         200: {
@@ -57,6 +59,8 @@ def update_me(
 
 @router.post(
     "/me/profile-image/presign",
+    summary="프로필 이미지 업로드 URL 발급",
+    description="프로필 이미지를 업로드하기 위한 Supabase Storage의 Signed URL을 발급받습니다.",
     response_model=SuccessResponseSchema[ProfileImagePresignResponseSchema],
     responses={
         200: {

@@ -20,6 +20,8 @@ router = APIRouter()
 
 @router.post(
     "/signup",
+    summary="회원가입",
+    description="새로운 사용자로 등록합니다.",
     status_code=status.HTTP_201_CREATED,
     response_model=SuccessResponseSchema[UserWithTokensResponseSchema],
     responses={
@@ -66,6 +68,8 @@ def signup(
 
 @router.post(
     "/login",
+    summary="로그인",
+    description="이메일과 비밀번호로 로그인하여 토큰을 발급받습니다.",
     response_model=SuccessResponseSchema[UserWithTokensResponseSchema],
     responses={
         200: {
@@ -109,6 +113,8 @@ def login(
 
 @router.post(
     "/refresh",
+    summary="토큰 재발급",
+    description="리프레시 토큰을 사용하여 새로운 액세스 토큰을 발급받습니다.",
     response_model=SuccessResponseSchema[RefreshTokenResponseSchema],
     responses={
         200: {
@@ -142,6 +148,8 @@ def refresh_token(
 
 @router.get(
     "/me",
+    summary="내 정보 조회",
+    description="현재 로그인한 사용자의 정보를 조회합니다.",
     response_model=SuccessResponseSchema[UserProfileSchema],
     responses={
         200: {

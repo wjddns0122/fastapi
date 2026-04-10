@@ -16,6 +16,8 @@ router = APIRouter()
 
 @router.post(
     "",
+    summary="관계 요청 생성",
+    description="다른 사용자에게 친구, 연인 등의 관계를 요청합니다. relationshipType에는 'couple', 'situationship', 'friend' 중 하나를 입력해야 합니다.",
     status_code=status.HTTP_201_CREATED,
     response_model=SuccessResponseSchema[RelationshipCreateResponseSchema],
     responses={
@@ -42,6 +44,11 @@ def create_relationship(
     current_user: User = Depends(get_current_user),
     relationship_service: RelationshipService = Depends(get_relationship_service),
 ):
+    """
+    관계를 생성하기 위해 상대방에게 요청을 보냅니다.
+    - **target_user_id**: 요청을 보낼 상대방의 UUID
+    - **relationship_type**: 관계 유형 (couple, situationship, friend)
+    """
     relationship = relationship_service.create_relationship(
         current_user=current_user,
         target_user_id=request.target_user_id,
@@ -57,6 +64,8 @@ def create_relationship(
 
 @router.post(
     "/{relationship_id}/accept",
+    summary="관계 요청 수락",
+    description="받은 관계 요청을 수락하여 관계를 활성화합니다.",
     response_model=SuccessResponseSchema[RelationshipCreateResponseSchema],
     responses={
         200: {
@@ -82,6 +91,10 @@ def accept_relationship(
     current_user: User = Depends(get_current_user),
     relationship_service: RelationshipService = Depends(get_relationship_service),
 ):
+    """
+    나에게 온 관계 요청을 수락합니다.
+    - **relationship_id**: 수락할 관계의 UUID
+    """
     relationship = relationship_service.accept_relationship(
         relationship_id=relationship_id,
         current_user=current_user,
@@ -95,6 +108,8 @@ def accept_relationship(
 
 @router.get(
     "/me",
+    summary="내 관계 목록 조회",
+    description="현재 내가 맺고 있는 모든 관계(친구 등)의 목록을 조회합니다.",
     response_model=SuccessResponseSchema[list[RelationshipListItemSchema]],
     responses={
         200: {
@@ -125,6 +140,9 @@ def list_my_relationships(
     current_user: User = Depends(get_current_user),
     relationship_service: RelationshipService = Depends(get_relationship_service),
 ):
+    """
+    로그인한 사용자의 전체 관계 목록을 가져옵니다.
+    """
     relationships = relationship_service.list_my_relationships(current_user=current_user)
     response_data = [
         RelationshipListItemSchema.model_validate(relationship)
