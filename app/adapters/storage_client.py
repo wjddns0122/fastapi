@@ -26,6 +26,10 @@ class SupabaseStorageClient:
         self.supabase_url = (supabase_url or settings.supabase_url or "").rstrip("/")
         self.service_role_key = service_role_key or settings.supabase_service_role_key
         self.bucket_name = bucket_name or settings.supabase_storage_bucket
+        self._http_client = httpx.Client(timeout=settings.supabase_request_timeout_seconds)
+
+    def close(self) -> None:
+        self._http_client.close()
 
     def create_signed_upload_url(
         self,
@@ -52,8 +56,7 @@ class SupabaseStorageClient:
         }
         payload = {"contentType": content_type}
 
-        with httpx.Client(timeout=settings.supabase_request_timeout_seconds) as client:
-            response = client.post(endpoint, headers=headers, json=payload)
+        response = self._http_client.post(endpoint, headers=headers, json=payload)
 
         if response.status_code >= 400:
             raise AppException(

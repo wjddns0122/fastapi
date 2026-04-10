@@ -31,8 +31,12 @@ def get_user_service(db: Session = Depends(get_db)) -> UserService:
     return UserService(db=db)
 
 
-def get_storage_client() -> SupabaseStorageClient:
-    return SupabaseStorageClient()
+def get_storage_client() -> Generator[SupabaseStorageClient, None, None]:
+    client = SupabaseStorageClient()
+    try:
+        yield client
+    finally:
+        client.close()
 
 
 def get_current_user(

@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
@@ -7,6 +8,8 @@ from app.core.db import Base, engine
 from app.core.exceptions import AppException
 from app.core.response import error_response, success_response
 from app.models import user as user_model
+
+load_dotenv()
 
 app = FastAPI(title="Backend FastAPI")
 app.include_router(api_router)

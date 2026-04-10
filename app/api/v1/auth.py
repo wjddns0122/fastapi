@@ -82,7 +82,7 @@ def signup(
                                 "tokenType": "bearer",
                             },
                         },
-                        "message": "로그인이 완료되었습니다.",
+                        "message": "로그인되었습니다.",
                     }
                 }
             },
