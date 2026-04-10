@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import inspect
+from sqlalchemy import inspect  # upgrade()에서 기존 스키마 검사에 사용
 
 # revision identifiers, used by Alembic.
 revision = "20260410_000001"
@@ -160,12 +160,9 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_relationship_activities_actor_user_id"), table_name="relationship_activities")
     op.drop_table("relationship_activities")
 
-    bind = op.get_bind()
-    inspector = inspect(bind)
-    relationship_columns = {
-        column["name"]
-        for column in inspector.get_columns("relationships")
-    } if inspector.has_table("relationships") else set()
-    if "base_score" in relationship_columns:
-        # SQLite는 drop column 제약이 있어 downgrade에서는 컬럼 삭제를 시도하지 않습니다.
-        pass
+    op.drop_index(op.f("ix_relationships_target_user_id"), table_name="relationships")
+    op.drop_index(op.f("ix_relationships_requester_user_id"), table_name="relationships")
+    op.drop_table("relationships")
+
+    op.drop_index(op.f("ix_users_email"), table_name="users")
+    op.drop_table("users")

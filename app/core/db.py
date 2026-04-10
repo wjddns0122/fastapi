@@ -1,5 +1,3 @@
-from collections.abc import Callable
-
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -23,20 +21,15 @@ def initialize_database(target_engine: Engine | None = None) -> None:
 
 def apply_runtime_migrations(target_engine: Engine | None = None) -> None:
     current_engine = target_engine or engine
-    inspector = inspect(current_engine)
 
-    migrations: list[Callable[[Engine], None]] = [
-        lambda migration_engine: _ensure_column_exists(
-            target_engine=migration_engine,
-            inspector=inspector,
-            table_name="relationships",
-            column_name="base_score",
-            column_sql="INTEGER",
-        ),
-    ]
-
-    for migration in migrations:
-        migration(current_engine)
+    # inspector를 각 마이그레이션 직전에 새로 생성하여 stale 스냅샷 문제 방지
+    _ensure_column_exists(
+        target_engine=current_engine,
+        inspector=inspect(current_engine),
+        table_name="relationships",
+        column_name="base_score",
+        column_sql="INTEGER",
+    )
 
 
 def _ensure_column_exists(

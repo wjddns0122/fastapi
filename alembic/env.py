@@ -7,10 +7,10 @@ from sqlalchemy import engine_from_config, pool
 
 from app.core.config import settings
 from app.core.db import Base
-from app.models import daily_compatibility as daily_compatibility_model
-from app.models import relationship as relationship_model
-from app.models import relationship_activity as relationship_activity_model
-from app.models import user as user_model
+from app.models import daily_compatibility as daily_compatibility_model  # noqa: F401
+from app.models import relationship as relationship_model  # noqa: F401
+from app.models import relationship_activity as relationship_activity_model  # noqa: F401
+from app.models import user as user_model  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)
