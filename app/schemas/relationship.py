@@ -57,8 +57,9 @@ class RelationshipCreateResponseSchema(CamelModel):
 
 
 class RelationshipPartnerSchema(CamelModel):
-    id: str = Field(examples=["uuid"])
-    nickname: str = Field(examples=["partner"])
+    """관계 상대방 요약 정보"""
+    id: str = Field(description="상대방 사용자 UUID", examples=["uuid"])
+    nickname: str = Field(description="상대방 닉네임", examples=["partner"])
 
 
 class RelationshipListItemSchema(CamelModel):

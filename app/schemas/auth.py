@@ -23,16 +23,19 @@ class RefreshTokenRequestSchema(CamelModel):
 
 
 class AuthTokensSchema(CamelModel):
-    access_token: str = Field(examples=["jwt-access-token"])
-    refresh_token: str = Field(examples=["jwt-refresh-token"])
-    token_type: str = Field(default="bearer", examples=["bearer"])
+    """인증 토큰 쌍"""
+    access_token: str = Field(description="액세스 토큰 (JWT, 단기 유효)", examples=["jwt-access-token"])
+    refresh_token: str = Field(description="리프레시 토큰 (JWT, 장기 유효)", examples=["jwt-refresh-token"])
+    token_type: str = Field(default="bearer", description="토큰 타입", examples=["bearer"])
 
 
 class UserWithTokensResponseSchema(CamelModel):
-    user: UserProfileSchema
-    tokens: AuthTokensSchema
+    """사용자 정보 + 인증 토큰 응답"""
+    user: UserProfileSchema = Field(description="가입/로그인한 사용자 프로필 정보")
+    tokens: AuthTokensSchema = Field(description="발급된 액세스/리프레시 토큰")
 
 
 class RefreshTokenResponseSchema(CamelModel):
-    access_token: str = Field(examples=["new-access-token"])
-    token_type: str = Field(default="bearer", examples=["bearer"])
+    """토큰 재발급 응답"""
+    access_token: str = Field(description="새로 발급된 액세스 토큰 (JWT)", examples=["new-access-token"])
+    token_type: str = Field(default="bearer", description="토큰 타입", examples=["bearer"])
