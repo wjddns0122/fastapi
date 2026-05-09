@@ -1,4 +1,3 @@
-from dotenv import load_dotenv
 from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
@@ -7,10 +6,13 @@ from app.api.v1.api import api_router
 from app.core.db import Base, engine
 from app.core.exceptions import AppException
 from app.core.response import error_response, success_response
+from app.models import daily_compatibility as daily_compatibility_model
+from app.models import daily_tarot as daily_tarot_model
+from app.models import letter as letter_model
+from app.models import mission as mission_model
 from app.models import relationship as relationship_model
+from app.models import weekly_report as weekly_report_model
 from app.models import user as user_model
-
-load_dotenv()
 
 _DESCRIPTION = """
 ## 개요
@@ -54,6 +56,30 @@ _OPENAPI_TAGS = [
     {
         "name": "relationships",
         "description": "친구/연인 요청 생성·수락·거절·삭제 및 목록 조회 등 **관계 관리** 엔드포인트",
+    },
+    {
+        "name": "compatibility",
+        "description": "오늘의 궁합 조회 및 재계산 엔드포인트",
+    },
+    {
+        "name": "tarot",
+        "description": "오늘의 타로 생성 및 기록 조회 등 **타로** 엔드포인트",
+    },
+    {
+        "name": "letters",
+        "description": "편지 작성, 조회, 첨부 이미지 업로드 URL 발급 엔드포인트",
+    },
+    {
+        "name": "missions",
+        "description": "오늘의 미션 조회 및 완료 처리 엔드포인트",
+    },
+    {
+        "name": "reports",
+        "description": "주간 리포트 조회 엔드포인트",
+    },
+    {
+        "name": "internal",
+        "description": "내부 배치 실행 엔드포인트",
     },
     {
         "name": "system",

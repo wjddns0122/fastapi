@@ -4,8 +4,13 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import AppException
+from app.models.daily_compatibility import DailyCompatibility
+from app.models.daily_tarot import DailyTarot
+from app.models.letter import Letter
+from app.models.mission import MissionCompletion
 from app.models.relationship import Relationship
 from app.models.user import User
+from app.models.weekly_report import WeeklyReport
 from app.schemas.relationship import RelationshipFilter, RelationshipStatus, RelationshipType
 
 
@@ -108,6 +113,21 @@ class RelationshipService:
                 status_code=403,
             )
 
+        self.db.query(DailyTarot).filter(
+            DailyTarot.relationship_id == relationship.id,
+        ).delete(synchronize_session=False)
+        self.db.query(DailyCompatibility).filter(
+            DailyCompatibility.relationship_id == relationship.id,
+        ).delete(synchronize_session=False)
+        self.db.query(Letter).filter(
+            Letter.relationship_id == relationship.id,
+        ).delete(synchronize_session=False)
+        self.db.query(MissionCompletion).filter(
+            MissionCompletion.relationship_id == relationship.id,
+        ).delete(synchronize_session=False)
+        self.db.query(WeeklyReport).filter(
+            WeeklyReport.relationship_id == relationship.id,
+        ).delete(synchronize_session=False)
         self.db.delete(relationship)
         self.db.commit()
 
