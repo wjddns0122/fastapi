@@ -43,7 +43,11 @@ class BehaviorService:
             .filter(RelationshipActivity.relationship_id == relationship.id)
             .scalar()
         )
-        inactive_days = 0 if latest_activity_date is None else (target_date - latest_activity_date).days
+        inactive_days = (
+            0
+            if latest_activity_date is None
+            else max(0, (target_date - latest_activity_date).days)
+        )
 
         participants = {
             relationship.requester_user_id,

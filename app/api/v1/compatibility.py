@@ -84,4 +84,7 @@ def refresh_today_compatibility(
         current_user=current_user,
         target_date=get_seoul_today(),
     )
-    return success_response(data=_serialize(record), message="OK")
+    return success_response(
+        data=_serialize(record),
+        message="오늘의 궁합이 재계산되었습니다.",
+    )

@@ -12,6 +12,7 @@ from app.models.user import User
 from app.services.behavior_service import BehaviorService
 from app.services.compatibility_engine import CompatibilityEngine
 from app.services.compatibility_text_service import CompatibilityTextService
+from app.services.relationship_access import ensure_relationship_access
 
 
 class CompatibilityService:
@@ -44,7 +45,7 @@ class CompatibilityService:
         if record is not None:
             return record
 
-        return self._calculate_and_save(
+        return self.ensure_daily_compatibility(
             relationship=relationship,
             target_date=target_date,
         )
@@ -59,6 +60,43 @@ class CompatibilityService:
             relationship_id=relationship_id,
             current_user=current_user,
         )
+        return self._calculate_and_save(
+            relationship=relationship,
+            target_date=target_date,
+        )
+
+    def generate_daily_for_all(self, target_date: date) -> int:
+        relationships = (
+            self.db.query(Relationship)
+            .filter(Relationship.status == "accepted")
+            .all()
+        )
+        generated_count = 0
+        for relationship in relationships:
+            existing = self.get_by_relationship_and_date(
+                relationship_id=relationship.id,
+                target_date=target_date,
+            )
+            if existing is None:
+                self.ensure_daily_compatibility(
+                    relationship=relationship,
+                    target_date=target_date,
+                )
+                generated_count += 1
+        return generated_count
+
+    def ensure_daily_compatibility(
+        self,
+        relationship: Relationship,
+        target_date: date,
+    ) -> DailyCompatibility:
+        """관계와 날짜 기준 궁합 레코드를 조회하거나 없으면 생성한다."""
+        existing = self.get_by_relationship_and_date(
+            relationship_id=relationship.id,
+            target_date=target_date,
+        )
+        if existing is not None:
+            return existing
         return self._calculate_and_save(
             relationship=relationship,
             target_date=target_date,
@@ -166,6 +204,12 @@ class CompatibilityService:
                 relationship_id=relationship.id,
                 target_date=target_date,
             )
+            if record is None:
+                raise AppException(
+                    code="INTERNAL_SERVER_ERROR",
+                    message="궁합 데이터를 저장하는 중 오류가 발생했습니다.",
+                    status_code=500,
+                )
             return record
         self.db.refresh(record)
         return record
@@ -175,30 +219,14 @@ class CompatibilityService:
         relationship_id: str,
         current_user: User,
     ) -> Relationship:
-        relationship = self.db.query(Relationship).filter(Relationship.id == relationship_id).first()
-        if relationship is None:
-            raise AppException(
-                code="NOT_FOUND",
-                message="관계를 찾을 수 없습니다.",
-                status_code=404,
-            )
-
-        is_participant = current_user.id in {
-            relationship.requester_user_id,
-            relationship.target_user_id,
-        }
-        if not is_participant:
-            raise AppException(
-                code="FORBIDDEN",
-                message="궁합을 조회할 권한이 없습니다.",
-                status_code=403,
-            )
-
-        if relationship.status != "accepted":
-            raise AppException(
-                code="CONFLICT",
-                message="수락된 관계만 궁합을 조회할 수 있습니다.",
-                status_code=409,
-            )
-
-        return relationship
+        relationship = (
+            self.db.query(Relationship)
+            .filter(Relationship.id == relationship_id)
+            .first()
+        )
+        return ensure_relationship_access(
+            relationship=relationship,
+            current_user=current_user,
+            forbidden_message="궁합을 조회할 권한이 없습니다.",
+            conflict_message="수락된 관계만 궁합을 조회할 수 있습니다.",
+        )

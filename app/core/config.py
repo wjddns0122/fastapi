@@ -1,6 +1,10 @@
 from dataclasses import dataclass
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -18,6 +22,12 @@ class Settings:
     supabase_request_timeout_seconds: float = float(
         os.getenv("SUPABASE_REQUEST_TIMEOUT_SECONDS", "10"),
     )
+    gemini_api_key: str | None = os.getenv("GEMINI_API_KEY")
+    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    gemini_request_timeout_seconds: float = float(
+        os.getenv("GEMINI_REQUEST_TIMEOUT_SECONDS", "10"),
+    )
+    internal_secret: str | None = os.getenv("INTERNAL_SECRET")
     compatibility_refresh_token: str | None = os.getenv(
         "COMPATIBILITY_REFRESH_TOKEN",
     )

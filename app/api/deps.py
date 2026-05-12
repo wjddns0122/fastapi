@@ -4,6 +4,7 @@ from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from app.adapters.ai_client import GeminiAIClient
 from app.adapters.storage_client import SupabaseStorageClient
 from app.core.db import SessionLocal
 from app.core.exceptions import AppException
@@ -15,7 +16,11 @@ from app.services.behavior_service import BehaviorService
 from app.services.compatibility_engine import CompatibilityEngine
 from app.services.compatibility_service import CompatibilityService
 from app.services.compatibility_text_service import CompatibilityTextService
+from app.services.letter_service import LetterService
+from app.services.mission_service import MissionService
 from app.services.relationship_service import RelationshipService
+from app.services.report_service import ReportService
+from app.services.tarot_service import TarotService
 from app.services.user_service import UserService
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -41,7 +46,9 @@ def get_relationship_service(db: Session = Depends(get_db)) -> RelationshipServi
     return RelationshipService(db=db)
 
 
-def get_compatibility_service(db: Session = Depends(get_db)) -> CompatibilityService:
+def get_compatibility_service(
+    db: Session = Depends(get_db),
+) -> CompatibilityService:
     return CompatibilityService(
         db=db,
         behavior_service=BehaviorService(db=db),
@@ -52,6 +59,33 @@ def get_compatibility_service(db: Session = Depends(get_db)) -> CompatibilitySer
 
 def get_activity_service(db: Session = Depends(get_db)) -> ActivityService:
     return ActivityService(db=db)
+
+
+def get_letter_service(db: Session = Depends(get_db)) -> LetterService:
+    return LetterService(db=db)
+
+
+def get_mission_service(db: Session = Depends(get_db)) -> MissionService:
+    return MissionService(db=db)
+
+
+def get_report_service(db: Session = Depends(get_db)) -> ReportService:
+    return ReportService(db=db)
+
+
+def get_tarot_ai_client() -> Generator[GeminiAIClient, None, None]:
+    client = GeminiAIClient()
+    try:
+        yield client
+    finally:
+        client.close()
+
+
+def get_tarot_service(
+    db: Session = Depends(get_db),
+    ai_client: GeminiAIClient = Depends(get_tarot_ai_client),
+) -> TarotService:
+    return TarotService(db=db, ai_client=ai_client)
 
 
 def get_storage_client() -> Generator[SupabaseStorageClient, None, None]:
