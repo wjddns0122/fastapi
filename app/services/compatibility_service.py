@@ -5,6 +5,7 @@ from datetime import date
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import AppException
 from app.models.daily_compatibility import DailyCompatibility
 from app.models.relationship import Relationship
 from app.models.user import User
@@ -203,6 +204,12 @@ class CompatibilityService:
                 relationship_id=relationship.id,
                 target_date=target_date,
             )
+            if record is None:
+                raise AppException(
+                    code="INTERNAL_SERVER_ERROR",
+                    message="궁합 데이터를 저장하는 중 오류가 발생했습니다.",
+                    status_code=500,
+                )
             return record
         self.db.refresh(record)
         return record

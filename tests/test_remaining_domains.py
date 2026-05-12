@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from unittest.mock import patch
 
 from app.api.deps import get_storage_client
 from app.core.config import settings
@@ -75,9 +76,8 @@ def test_compatibility_today_and_refresh(client):
         f"/compatibility/today/{relationship_id}",
         headers={"Authorization": f"Bearer {requester_token}"},
     )
-    original_refresh_token = settings.compatibility_refresh_token
-    object.__setattr__(settings, "compatibility_refresh_token", "test-internal-token")
-    try:
+    with patch("app.api.v1.compatibility.settings") as mock_settings:
+        mock_settings.compatibility_refresh_token = "test-internal-token"
         refresh_response = client.post(
             f"/compatibility/today/{relationship_id}/refresh",
             headers={
@@ -85,8 +85,6 @@ def test_compatibility_today_and_refresh(client):
                 "X-Internal-Token": "test-internal-token",
             },
         )
-    finally:
-        object.__setattr__(settings, "compatibility_refresh_token", original_refresh_token)
 
     assert response.status_code == 200
     assert response.json()["success"] is True
