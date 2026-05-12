@@ -3,5 +3,7 @@ uvicorn[standard]
 pytest
 python-dotenv
 sqlalchemy
+alembic
 email-validator
 httpx
+tzdata

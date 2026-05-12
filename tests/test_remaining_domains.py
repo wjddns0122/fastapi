@@ -75,10 +75,18 @@ def test_compatibility_today_and_refresh(client):
         f"/compatibility/today/{relationship_id}",
         headers={"Authorization": f"Bearer {requester_token}"},
     )
-    refresh_response = client.post(
-        f"/compatibility/today/{relationship_id}/refresh",
-        headers={"Authorization": f"Bearer {requester_token}"},
-    )
+    original_refresh_token = settings.compatibility_refresh_token
+    object.__setattr__(settings, "compatibility_refresh_token", "test-internal-token")
+    try:
+        refresh_response = client.post(
+            f"/compatibility/today/{relationship_id}/refresh",
+            headers={
+                "Authorization": f"Bearer {requester_token}",
+                "X-Internal-Token": "test-internal-token",
+            },
+        )
+    finally:
+        object.__setattr__(settings, "compatibility_refresh_token", original_refresh_token)
 
     assert response.status_code == 200
     assert response.json()["success"] is True

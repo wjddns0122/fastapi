@@ -3,7 +3,6 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 
 from app.api.v1.api import api_router
-from app.core.db import Base, engine
 from app.core.exceptions import AppException
 from app.core.response import error_response, success_response
 from app.models import daily_compatibility as daily_compatibility_model
@@ -11,8 +10,9 @@ from app.models import daily_tarot as daily_tarot_model
 from app.models import letter as letter_model
 from app.models import mission as mission_model
 from app.models import relationship as relationship_model
-from app.models import weekly_report as weekly_report_model
+from app.models import relationship_activity as relationship_activity_model
 from app.models import user as user_model
+from app.models import weekly_report as weekly_report_model
 
 _DESCRIPTION = """
 ## 개요
@@ -58,8 +58,12 @@ _OPENAPI_TAGS = [
         "description": "친구/연인 요청 생성·수락·거절·삭제 및 목록 조회 등 **관계 관리** 엔드포인트",
     },
     {
+        "name": "activities",
+        "description": "궁합 점수에 반영되는 편지, 퀘스트, 상점, 아바타 등 **활동 이벤트 기록** 엔드포인트",
+    },
+    {
         "name": "compatibility",
-        "description": "오늘의 궁합 조회 및 재계산 엔드포인트",
+        "description": "오늘의 궁합 조회 및 내부 재계산 등 **궁합 계산** 엔드포인트",
     },
     {
         "name": "tarot",
@@ -96,8 +100,6 @@ app = FastAPI(
     license_info={"name": "Private"},
 )
 app.include_router(api_router)
-
-Base.metadata.create_all(bind=engine)
 
 
 @app.exception_handler(AppException)

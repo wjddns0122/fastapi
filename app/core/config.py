@@ -28,6 +28,9 @@ class Settings:
         os.getenv("GEMINI_REQUEST_TIMEOUT_SECONDS", "10"),
     )
     internal_secret: str | None = os.getenv("INTERNAL_SECRET")
+    compatibility_refresh_token: str | None = os.getenv(
+        "COMPATIBILITY_REFRESH_TOKEN",
+    )
 
 
 settings = Settings()

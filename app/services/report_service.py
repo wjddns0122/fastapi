@@ -9,7 +9,10 @@ from app.models.daily_compatibility import DailyCompatibility
 from app.models.relationship import Relationship
 from app.models.user import User
 from app.models.weekly_report import WeeklyReport
+from app.services.behavior_service import BehaviorService
+from app.services.compatibility_engine import CompatibilityEngine
 from app.services.compatibility_service import CompatibilityService
+from app.services.compatibility_text_service import CompatibilityTextService
 from app.services.relationship_access import ensure_relationship_access
 
 
@@ -84,7 +87,12 @@ class ReportService:
         week_start: date,
         week_end: date,
     ) -> WeeklyReport | None:
-        compatibility_service = CompatibilityService(db=self.db)
+        compatibility_service = CompatibilityService(
+            db=self.db,
+            behavior_service=BehaviorService(db=self.db),
+            compatibility_engine=CompatibilityEngine(),
+            compatibility_text_service=CompatibilityTextService(),
+        )
         relationship = (
             self.db.query(Relationship)
             .filter(Relationship.id == relationship_id)

@@ -10,8 +10,12 @@ from app.core.db import SessionLocal
 from app.core.exceptions import AppException
 from app.core.security import decode_token
 from app.models.user import User
+from app.services.activity_service import ActivityService
 from app.services.auth_service import AuthService
+from app.services.behavior_service import BehaviorService
+from app.services.compatibility_engine import CompatibilityEngine
 from app.services.compatibility_service import CompatibilityService
+from app.services.compatibility_text_service import CompatibilityTextService
 from app.services.letter_service import LetterService
 from app.services.mission_service import MissionService
 from app.services.relationship_service import RelationshipService
@@ -42,8 +46,19 @@ def get_relationship_service(db: Session = Depends(get_db)) -> RelationshipServi
     return RelationshipService(db=db)
 
 
-def get_compatibility_service(db: Session = Depends(get_db)) -> CompatibilityService:
-    return CompatibilityService(db=db)
+def get_compatibility_service(
+    db: Session = Depends(get_db),
+) -> CompatibilityService:
+    return CompatibilityService(
+        db=db,
+        behavior_service=BehaviorService(db=db),
+        compatibility_engine=CompatibilityEngine(),
+        compatibility_text_service=CompatibilityTextService(),
+    )
+
+
+def get_activity_service(db: Session = Depends(get_db)) -> ActivityService:
+    return ActivityService(db=db)
 
 
 def get_letter_service(db: Session = Depends(get_db)) -> LetterService:

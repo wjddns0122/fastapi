@@ -12,11 +12,13 @@ from app.models.relationship import Relationship
 from app.models.user import User
 from app.models.weekly_report import WeeklyReport
 from app.schemas.relationship import RelationshipFilter, RelationshipStatus, RelationshipType
+from app.services.compatibility_engine import CompatibilityEngine
 
 
 class RelationshipService:
     def __init__(self, db: Session) -> None:
         self.db = db
+        self.compatibility_engine = CompatibilityEngine()
 
     def create_relationship(
         self,
@@ -55,6 +57,11 @@ class RelationshipService:
             target_user_id=target_user_id,
             relationship_type=relationship_type,
             status="pending",
+            base_score=self.compatibility_engine.build_initial_base_score(
+                requester_user_id=current_user.id,
+                target_user_id=target_user_id,
+                relationship_type=relationship_type,
+            ),
         )
         self.db.add(relationship)
         self.db.commit()
