@@ -25,13 +25,7 @@ class CompatibilityService:
             current_user=current_user,
             relationship_id=relationship_id,
         )
-        existing = self._get_by_relationship_and_date(
-            relationship_id=relationship.id,
-            target_date=target_date,
-        )
-        if existing is not None:
-            return existing
-        return self._create_daily_compatibility(
+        return self.ensure_daily_compatibility(
             relationship=relationship,
             target_date=target_date,
         )
@@ -85,12 +79,28 @@ class CompatibilityService:
                 target_date=target_date,
             )
             if existing is None:
-                self._create_daily_compatibility(
+                self.ensure_daily_compatibility(
                     relationship=relationship,
                     target_date=target_date,
                 )
                 generated_count += 1
         return generated_count
+
+    def ensure_daily_compatibility(
+        self,
+        relationship: Relationship,
+        target_date: date,
+    ) -> DailyCompatibility:
+        existing = self._get_by_relationship_and_date(
+            relationship_id=relationship.id,
+            target_date=target_date,
+        )
+        if existing is not None:
+            return existing
+        return self._create_daily_compatibility(
+            relationship=relationship,
+            target_date=target_date,
+        )
 
     def _get_accessible_relationship(
         self,

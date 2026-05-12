@@ -31,11 +31,11 @@ class FakeStorageClient:
         return SignedUploadData()
 
 
-def _create_accepted_relationship(client):
+def _create_accepted_relationship(client, prefix="domain"):
     requester_signup_response = client.post(
         "/auth/signup",
         json={
-            "email": "requester-domain@example.com",
+            "email": f"requester-{prefix}@example.com",
             "password": "StrongPassword123!",
             "nickname": "requester",
         },
@@ -43,7 +43,7 @@ def _create_accepted_relationship(client):
     target_signup_response = client.post(
         "/auth/signup",
         json={
-            "email": "target-domain@example.com",
+            "email": f"target-{prefix}@example.com",
             "password": "StrongPassword123!",
             "nickname": "target",
         },
@@ -137,12 +137,44 @@ def test_letters_create_list_detail_and_attachment_presign(client):
     assert len(fake_storage_client.calls) == 1
 
 
+def test_instant_letter_drops_scheduled_at(client):
+    relationship_id, requester_token, _, target_user_id = _create_accepted_relationship(
+        client,
+        prefix="instant-letter",
+    )
+
+    create_response = client.post(
+        "/letters",
+        headers={"Authorization": f"Bearer {requester_token}"},
+        json={
+            "relationshipId": relationship_id,
+            "receiverUserId": target_user_id,
+            "content": "지금 바로 보낼게.",
+            "letterType": "instant",
+            "scheduledAt": (
+                datetime.now(UTC) + timedelta(days=1)
+            ).isoformat(),
+        },
+    )
+    letter_id = create_response.json()["data"]["id"]
+    detail_response = client.get(
+        f"/letters/{letter_id}",
+        headers={"Authorization": f"Bearer {requester_token}"},
+    )
+
+    assert create_response.status_code == 201
+    assert create_response.json()["data"]["status"] == "sent"
+    assert detail_response.status_code == 200
+    assert detail_response.json()["data"]["scheduledAt"] is None
+
+
 def test_missions_list_and_complete(client):
     relationship_id, requester_token, _, _ = _create_accepted_relationship(client)
 
     list_response = client.get(
         "/missions/today",
         headers={"Authorization": f"Bearer {requester_token}"},
+        params={"relationshipId": relationship_id},
     )
     mission_id = list_response.json()["data"][0]["missionId"]
     complete_response = client.post(
@@ -153,12 +185,66 @@ def test_missions_list_and_complete(client):
     second_list_response = client.get(
         "/missions/today",
         headers={"Authorization": f"Bearer {requester_token}"},
+        params={"relationshipId": relationship_id},
     )
 
     assert list_response.status_code == 200
     assert complete_response.status_code == 200
     assert complete_response.json()["data"]["status"] == "completed"
     assert second_list_response.json()["data"][0]["status"] == "completed"
+
+
+def test_mission_completion_is_scoped_by_relationship(client):
+    first_relationship_id, requester_token, _, _ = _create_accepted_relationship(
+        client,
+        prefix="mission-first",
+    )
+    second_target_signup_response = client.post(
+        "/auth/signup",
+        json={
+            "email": "target-mission-second@example.com",
+            "password": "StrongPassword123!",
+            "nickname": "target-second",
+        },
+    )
+    second_target_token = second_target_signup_response.json()["data"]["tokens"][
+        "accessToken"
+    ]
+    second_target_user_id = second_target_signup_response.json()["data"]["user"]["id"]
+    second_create_response = client.post(
+        "/relationships",
+        headers={"Authorization": f"Bearer {requester_token}"},
+        json={
+            "targetUserId": second_target_user_id,
+            "relationshipType": "couple",
+        },
+    )
+    second_relationship_id = second_create_response.json()["data"]["id"]
+    client.post(
+        f"/relationships/{second_relationship_id}/accept",
+        headers={"Authorization": f"Bearer {second_target_token}"},
+    )
+
+    first_list_response = client.get(
+        "/missions/today",
+        headers={"Authorization": f"Bearer {requester_token}"},
+        params={"relationshipId": first_relationship_id},
+    )
+    mission_id = first_list_response.json()["data"][0]["missionId"]
+    complete_response = client.post(
+        f"/missions/{mission_id}/complete",
+        headers={"Authorization": f"Bearer {requester_token}"},
+        json={"relationshipId": first_relationship_id},
+    )
+    second_list_response = client.get(
+        "/missions/today",
+        headers={"Authorization": f"Bearer {requester_token}"},
+        params={"relationshipId": second_relationship_id},
+    )
+
+    assert complete_response.status_code == 200
+    assert second_list_response.status_code == 200
+    assert second_list_response.json()["data"][0]["status"] == "pending"
 
 
 def test_weekly_report_returns_generated_report(client):

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import get_current_user, get_mission_service
 from app.core.response import success_response
@@ -21,11 +21,13 @@ router = APIRouter()
     summary="오늘의 미션 조회",
 )
 def list_today_missions(
+    relationship_id: str = Query(..., alias="relationshipId"),
     current_user: User = Depends(get_current_user),
     mission_service: MissionService = Depends(get_mission_service),
 ):
     missions = mission_service.list_today_missions(
         current_user=current_user,
+        relationship_id=relationship_id,
         target_date=get_seoul_today(),
     )
     return success_response(

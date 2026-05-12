@@ -4,6 +4,7 @@ from datetime import date, timedelta
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import AppException
 from app.models.daily_compatibility import DailyCompatibility
 from app.models.relationship import Relationship
 from app.models.user import User
@@ -40,11 +41,18 @@ class ReportService:
         )
         if existing is not None:
             return existing
-        return self._create_weekly_report(
+        created_report = self._create_weekly_report(
             relationship_id=relationship_id,
             week_start=week_start,
             week_end=week_end,
         )
+        if created_report is None:
+            raise AppException(
+                code="CONFLICT",
+                message="주간 리포트를 생성할 데이터가 없습니다.",
+                status_code=409,
+            )
+        return created_report
 
     def generate_weekly_for_all(self, today: date) -> int:
         week_start, week_end = self._week_range(today=today)
@@ -61,12 +69,13 @@ class ReportService:
                 week_end=week_end,
             )
             if existing is None:
-                self._create_weekly_report(
+                created_report = self._create_weekly_report(
                     relationship_id=relationship.id,
                     week_start=week_start,
                     week_end=week_end,
                 )
-                generated_count += 1
+                if created_report is not None:
+                    generated_count += 1
         return generated_count
 
     def _create_weekly_report(
@@ -74,40 +83,41 @@ class ReportService:
         relationship_id: str,
         week_start: date,
         week_end: date,
-    ) -> WeeklyReport:
+    ) -> WeeklyReport | None:
         compatibility_service = CompatibilityService(db=self.db)
+        relationship = (
+            self.db.query(Relationship)
+            .filter(Relationship.id == relationship_id)
+            .first()
+        )
+        if relationship is None:
+            return None
+        records_by_date = {
+            record.target_date: record
+            for record in self._list_daily_compatibilities(
+                relationship_id=relationship_id,
+                week_start=week_start,
+                week_end=week_end,
+            )
+        }
         current_day = week_start
         while current_day <= week_end:
-            relationship = (
-                self.db.query(Relationship)
-                .filter(Relationship.id == relationship_id)
-                .first()
-            )
-            if relationship is not None:
-                existing = (
-                    self.db.query(DailyCompatibility)
-                    .filter(
-                        DailyCompatibility.relationship_id == relationship_id,
-                        DailyCompatibility.target_date == current_day,
-                    )
-                    .first()
+            if current_day not in records_by_date:
+                record = compatibility_service.ensure_daily_compatibility(
+                    relationship=relationship,
+                    target_date=current_day,
                 )
-                if existing is None:
-                    compatibility_service._create_daily_compatibility(
-                        relationship=relationship,
-                        target_date=current_day,
-                    )
+                if record is not None:
+                    records_by_date[current_day] = record
             current_day += timedelta(days=1)
 
-        records = (
-            self.db.query(DailyCompatibility)
-            .filter(
-                DailyCompatibility.relationship_id == relationship_id,
-                DailyCompatibility.target_date >= week_start,
-                DailyCompatibility.target_date <= week_end,
-            )
-            .all()
-        )
+        records = [
+            record
+            for _, record in sorted(records_by_date.items())
+            if record is not None
+        ]
+        if not records:
+            return None
         average_score = round(
             sum(record.final_score for record in records) / len(records),
         )
@@ -126,6 +136,22 @@ class ReportService:
         self.db.commit()
         self.db.refresh(report)
         return report
+
+    def _list_daily_compatibilities(
+        self,
+        relationship_id: str,
+        week_start: date,
+        week_end: date,
+    ) -> list[DailyCompatibility]:
+        return (
+            self.db.query(DailyCompatibility)
+            .filter(
+                DailyCompatibility.relationship_id == relationship_id,
+                DailyCompatibility.target_date >= week_start,
+                DailyCompatibility.target_date <= week_end,
+            )
+            .all()
+        )
 
     def _get_weekly_report(
         self,

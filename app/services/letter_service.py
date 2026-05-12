@@ -52,6 +52,7 @@ class LetterService:
 
         status = "sent" if letter_type == "instant" else "scheduled"
         sent_at = datetime.now(UTC) if letter_type == "instant" else None
+        normalized_scheduled_at = None if letter_type == "instant" else scheduled_at
         letter = Letter(
             relationship_id=relationship.id,
             sender_user_id=current_user.id,
@@ -59,7 +60,7 @@ class LetterService:
             content=content,
             letter_type=letter_type,
             status=status,
-            scheduled_at=scheduled_at,
+            scheduled_at=normalized_scheduled_at,
             sent_at=sent_at,
         )
         self.db.add(letter)

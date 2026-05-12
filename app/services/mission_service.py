@@ -35,11 +35,23 @@ class MissionService:
     def list_today_missions(
         self,
         current_user: User,
+        relationship_id: str,
         target_date: date,
     ) -> list[dict[str, object]]:
+        relationship = (
+            self.db.query(Relationship)
+            .filter(Relationship.id == relationship_id)
+            .first()
+        )
+        ensure_relationship_access(
+            relationship=relationship,
+            current_user=current_user,
+            forbidden_message="미션을 조회할 권한이 없습니다.",
+        )
         completions = (
             self.db.query(MissionCompletion)
             .filter(
+                MissionCompletion.relationship_id == relationship_id,
                 MissionCompletion.user_id == current_user.id,
                 MissionCompletion.target_date == target_date,
             )

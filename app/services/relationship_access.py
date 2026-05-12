@@ -7,6 +7,7 @@ def ensure_relationship_access(
     relationship: Relationship | None,
     current_user: User,
     forbidden_message: str,
+    conflict_message: str = "수락된 관계에서만 사용할 수 있습니다.",
 ) -> Relationship:
     """관계 존재 여부와 현재 사용자의 접근 권한을 검증합니다."""
     if relationship is None:
@@ -30,7 +31,7 @@ def ensure_relationship_access(
     if relationship.status != "accepted":
         raise AppException(
             code="CONFLICT",
-            message="수락된 관계에서만 사용할 수 있습니다.",
+            message=conflict_message,
             status_code=409,
         )
 

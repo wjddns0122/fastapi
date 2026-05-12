@@ -45,6 +45,28 @@ def _create_accepted_relationship(db_session):
     return requester, relationship
 
 
+def _create_pending_relationship(db_session):
+    auth_service = AuthService(db=db_session)
+    requester, _ = auth_service.signup(
+        email="pending-requester@example.com",
+        password="StrongPassword123!",
+        nickname="requester",
+    )
+    target, _ = auth_service.signup(
+        email="pending-target@example.com",
+        password="StrongPassword123!",
+        nickname="target",
+    )
+    relationship_service = RelationshipService(db=db_session)
+    relationship = relationship_service.create_relationship(
+        current_user=requester,
+        target_user_id=target.id,
+        relationship_type="couple",
+    )
+
+    return requester, relationship
+
+
 def test_tarot_service_creates_daily_tarot_with_ai_interpretation(db_session):
     requester, relationship = _create_accepted_relationship(db_session)
     service = TarotService(db=db_session, ai_client=FakeTarotAIClient())
@@ -121,6 +143,24 @@ def test_tarot_service_propagates_unknown_ai_errors(db_session):
         pass
     else:
         raise AssertionError("RuntimeError가 전파되어야 합니다.")
+
+
+def test_tarot_service_uses_tarot_specific_conflict_message(db_session):
+    requester, relationship = _create_pending_relationship(db_session)
+    service = TarotService(db=db_session, ai_client=FakeTarotAIClient())
+
+    try:
+        service.create_daily_tarot(
+            current_user=requester,
+            relationship_id=relationship.id,
+            question="오늘 연락해도 될까?",
+            target_date=date(2026, 4, 10),
+        )
+    except AppException as exc:
+        assert exc.code == "CONFLICT"
+        assert exc.message == "수락된 관계만 타로를 뽑을 수 있습니다."
+    else:
+        raise AssertionError("AppException이 발생해야 합니다.")
 
 
 def test_tarot_service_returns_existing_when_concurrent_insert_races(db_session):

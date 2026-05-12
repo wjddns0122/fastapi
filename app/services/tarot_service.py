@@ -13,6 +13,7 @@ from app.core.exceptions import AppException
 from app.models.daily_tarot import DailyTarot
 from app.models.relationship import Relationship
 from app.models.user import User
+from app.services.relationship_access import ensure_relationship_access
 
 logger = logging.getLogger(__name__)
 
@@ -173,32 +174,12 @@ class TarotService:
             .filter(Relationship.id == relationship_id)
             .first()
         )
-        if relationship is None:
-            raise AppException(
-                code="NOT_FOUND",
-                message="관계를 찾을 수 없습니다.",
-                status_code=404,
-            )
-
-        is_participant = current_user.id in {
-            relationship.requester_user_id,
-            relationship.target_user_id,
-        }
-        if not is_participant:
-            raise AppException(
-                code="FORBIDDEN",
-                message="타로를 조회할 권한이 없습니다.",
-                status_code=403,
-            )
-
-        if relationship.status != "accepted":
-            raise AppException(
-                code="CONFLICT",
-                message="수락된 관계만 타로를 뽑을 수 있습니다.",
-                status_code=409,
-            )
-
-        return relationship
+        return ensure_relationship_access(
+            relationship=relationship,
+            current_user=current_user,
+            forbidden_message="타로를 조회할 권한이 없습니다.",
+            conflict_message="수락된 관계만 타로를 뽑을 수 있습니다.",
+        )
 
     def _generate_interpretation(
         self,
