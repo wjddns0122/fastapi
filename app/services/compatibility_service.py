@@ -91,6 +91,7 @@ class CompatibilityService:
         relationship: Relationship,
         target_date: date,
     ) -> DailyCompatibility:
+        """관계와 날짜 기준 궁합 레코드를 조회하거나 없으면 생성한다."""
         existing = self._get_by_relationship_and_date(
             relationship_id=relationship.id,
             target_date=target_date,

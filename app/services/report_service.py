@@ -146,6 +146,7 @@ class ReportService:
         week_start: date,
         week_end: date,
     ) -> list[DailyCompatibility]:
+        """주간 범위에 포함되는 일별 궁합 레코드를 한 번에 조회한다."""
         return (
             self.db.query(DailyCompatibility)
             .filter(
