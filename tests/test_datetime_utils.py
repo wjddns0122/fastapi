@@ -12,6 +12,7 @@ def test_get_seoul_today_falls_back_to_utc_when_timezone_data_missing(monkeypatc
     class FakeDatetime:
         @staticmethod
         def now(tz):
+            assert tz is UTC
             return fixed_now
 
     def raise_zoneinfo_not_found(_key):

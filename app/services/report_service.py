@@ -111,11 +111,14 @@ class ReportService:
                     records_by_date[current_day] = record
             current_day += timedelta(days=1)
 
-        records = [
-            record
-            for _, record in sorted(records_by_date.items())
-            if record is not None
-        ]
+        records = sorted(
+            (
+                record
+                for record in records_by_date.values()
+                if record is not None
+            ),
+            key=lambda record: record.target_date,
+        )
         if not records:
             return None
         average_score = round(
