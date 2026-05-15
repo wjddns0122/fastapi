@@ -5,8 +5,9 @@ from pydantic import Field
 
 from app.schemas.base import CamelModel
 
-LetterType = Literal["instant", "scheduled", "timecapsule"]
-LetterStatus = Literal["draft", "scheduled", "sent", "canceled"]
+LetterType = Literal["instant", "scheduled", "timecapsule", "draft", "conditional"]
+LetterStatus = Literal["draft", "scheduled", "conditional_pending", "sent", "canceled"]
+LetterConditionType = Literal["receiver_mood_low", "after_conflict", "anniversary", "custom"]
 
 
 class CreateLetterRequestSchema(CamelModel):
@@ -16,6 +17,7 @@ class CreateLetterRequestSchema(CamelModel):
     receiver_user_id: str = Field(examples=["uuid"])
     content: str = Field(min_length=1, max_length=2000)
     letter_type: LetterType = Field(examples=["scheduled"])
+    condition_type: LetterConditionType | None = Field(default=None)
     scheduled_at: datetime | None = Field(default=None)
 
 
@@ -36,9 +38,18 @@ class LetterResponseSchema(CamelModel):
     content: str
     letter_type: LetterType
     status: LetterStatus
+    condition_type: LetterConditionType | None = None
     scheduled_at: datetime | None = None
     sent_at: datetime | None = None
     created_at: datetime
+
+
+class LetterTemplateSchema(CamelModel):
+    """편지 추천 템플릿 스키마"""
+
+    key: str
+    title: str
+    prompt: str
 
 
 class LetterAttachmentPresignRequestSchema(CamelModel):

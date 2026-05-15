@@ -31,6 +31,7 @@ class Settings:
     compatibility_refresh_token: str | None = os.getenv(
         "COMPATIBILITY_REFRESH_TOKEN",
     )
+    public_app_url: str = os.getenv("PUBLIC_APP_URL", "https://fastapi-production-88da.up.railway.app")
 
 
 settings = Settings()

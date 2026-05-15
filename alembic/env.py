@@ -8,9 +8,14 @@ from sqlalchemy import engine_from_config, pool
 from app.core.config import settings
 from app.core.db import Base
 from app.models import daily_compatibility as daily_compatibility_model  # noqa: F401
+from app.models import daily_tarot as daily_tarot_model  # noqa: F401
+from app.models import letter as letter_model  # noqa: F401
+from app.models import mission as mission_model  # noqa: F401
 from app.models import relationship as relationship_model  # noqa: F401
 from app.models import relationship_activity as relationship_activity_model  # noqa: F401
+from app.models import relationship_invitation as relationship_invitation_model  # noqa: F401
 from app.models import user as user_model  # noqa: F401
+from app.models import weekly_report as weekly_report_model  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)

@@ -11,6 +11,7 @@ from app.schemas.letter import (
     LetterAttachmentPresignResponseSchema,
     LetterCreateResponseSchema,
     LetterResponseSchema,
+    LetterTemplateSchema,
 )
 from app.services.letter_service import LetterService
 
@@ -34,6 +35,7 @@ def create_letter(
         receiver_user_id=request.receiver_user_id,
         content=request.content,
         letter_type=request.letter_type,
+        condition_type=request.condition_type,
         scheduled_at=request.scheduled_at,
     )
     return success_response(
@@ -65,6 +67,24 @@ def list_letters(
     )
     return success_response(
         data=[LetterResponseSchema.model_validate(letter) for letter in letters],
+        message="OK",
+    )
+
+
+@router.get(
+    "/templates",
+    response_model=SuccessResponseSchema[list[LetterTemplateSchema]],
+    summary="편지 추천 템플릿 조회",
+)
+def list_letter_templates(
+    current_user: User = Depends(get_current_user),
+    letter_service: LetterService = Depends(get_letter_service),
+):
+    return success_response(
+        data=[
+            LetterTemplateSchema.model_validate(template)
+            for template in letter_service.list_templates()
+        ],
         message="OK",
     )
 

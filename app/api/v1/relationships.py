@@ -3,11 +3,15 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
 
 from app.api.deps import get_current_user, get_relationship_service
+from app.core.config import settings
 from app.core.response import success_response
 from app.models.user import User
 from app.schemas.common import SuccessResponseSchema
 from app.schemas.relationship import (
     CreateRelationshipRequestSchema,
+    CreateRelationshipInvitationRequestSchema,
+    CreateSoloRelationshipRequestSchema,
+    RelationshipInvitationResponseSchema,
     RelationshipCreateResponseSchema,
     RelationshipFilter,
     RelationshipListItemSchema,
@@ -64,6 +68,76 @@ _422 = {
         }
     },
 }
+
+
+@router.post(
+    "/solo",
+    summary="혼자 시작 관계 생성",
+    status_code=status.HTTP_201_CREATED,
+    response_model=SuccessResponseSchema[RelationshipCreateResponseSchema],
+)
+def create_solo_relationship(
+    request: CreateSoloRelationshipRequestSchema,
+    current_user: User = Depends(get_current_user),
+    relationship_service: RelationshipService = Depends(get_relationship_service),
+):
+    relationship = relationship_service.create_solo_relationship(
+        current_user=current_user,
+        relationship_type=request.relationship_type,
+    )
+    return success_response(
+        data=RelationshipCreateResponseSchema.model_validate(relationship),
+        message="혼자 시작 관계가 생성되었습니다.",
+        status_code=status.HTTP_201_CREATED,
+    )
+
+
+@router.post(
+    "/invitations",
+    summary="관계 초대 링크 생성",
+    status_code=status.HTTP_201_CREATED,
+    response_model=SuccessResponseSchema[RelationshipInvitationResponseSchema],
+)
+def create_relationship_invitation(
+    request: CreateRelationshipInvitationRequestSchema,
+    current_user: User = Depends(get_current_user),
+    relationship_service: RelationshipService = Depends(get_relationship_service),
+):
+    invitation = relationship_service.create_invitation(
+        current_user=current_user,
+        relationship_type=request.relationship_type,
+    )
+    invite_url = f"{settings.public_app_url.rstrip('/')}/invite/{invitation.token}"
+    return success_response(
+        data=RelationshipInvitationResponseSchema(
+            token=invitation.token,
+            invite_url=invite_url,
+            relationship_type=invitation.relationship_type,
+            status=invitation.status,
+        ),
+        message="초대 링크가 생성되었습니다.",
+        status_code=status.HTTP_201_CREATED,
+    )
+
+
+@router.post(
+    "/invitations/{token}/accept",
+    summary="관계 초대 수락",
+    response_model=SuccessResponseSchema[RelationshipCreateResponseSchema],
+)
+def accept_relationship_invitation(
+    token: str,
+    current_user: User = Depends(get_current_user),
+    relationship_service: RelationshipService = Depends(get_relationship_service),
+):
+    relationship = relationship_service.accept_invitation(
+        token=token,
+        current_user=current_user,
+    )
+    return success_response(
+        data=RelationshipCreateResponseSchema.model_validate(relationship),
+        message="관계 초대가 수락되었습니다.",
+    )
 
 
 @router.post(

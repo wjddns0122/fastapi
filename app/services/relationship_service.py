@@ -9,6 +9,7 @@ from app.models.daily_tarot import DailyTarot
 from app.models.letter import Letter
 from app.models.mission import MissionCompletion
 from app.models.relationship import Relationship
+from app.models.relationship_invitation import RelationshipInvitation
 from app.models.user import User
 from app.models.weekly_report import WeeklyReport
 from app.schemas.relationship import RelationshipFilter, RelationshipStatus, RelationshipType
@@ -64,6 +65,129 @@ class RelationshipService:
             ),
         )
         self.db.add(relationship)
+        self.db.commit()
+        self.db.refresh(relationship)
+        return relationship
+
+    def create_solo_relationship(
+        self,
+        current_user: User,
+        relationship_type: RelationshipType,
+    ) -> Relationship:
+        existing_relationship = self._get_existing_relationship(
+            first_user_id=current_user.id,
+            second_user_id=current_user.id,
+        )
+        if existing_relationship is not None:
+            return existing_relationship
+
+        relationship = Relationship(
+            requester_user_id=current_user.id,
+            target_user_id=current_user.id,
+            relationship_type=relationship_type,
+            status="accepted",
+            base_score=self.compatibility_engine.build_initial_base_score(
+                requester_user_id=current_user.id,
+                target_user_id=current_user.id,
+                relationship_type=relationship_type,
+            ),
+        )
+        self.db.add(relationship)
+        self.db.commit()
+        self.db.refresh(relationship)
+        return relationship
+
+    def create_invitation(
+        self,
+        current_user: User,
+        relationship_type: RelationshipType,
+    ) -> RelationshipInvitation:
+        invitation = RelationshipInvitation(
+            requester_user_id=current_user.id,
+            relationship_type=relationship_type,
+            status="pending",
+        )
+        self.db.add(invitation)
+        self.db.commit()
+        self.db.refresh(invitation)
+        return invitation
+
+    def accept_invitation(
+        self,
+        token: str,
+        current_user: User,
+    ) -> Relationship:
+        invitation = (
+            self.db.query(RelationshipInvitation)
+            .filter(RelationshipInvitation.token == token)
+            .first()
+        )
+        if invitation is None:
+            raise AppException(
+                code="NOT_FOUND",
+                message="초대 링크를 찾을 수 없습니다.",
+                status_code=404,
+            )
+        if invitation.status != "pending":
+            raise AppException(
+                code="CONFLICT",
+                message="이미 처리된 초대 링크입니다.",
+                status_code=409,
+            )
+        if invitation.requester_user_id == current_user.id:
+            raise AppException(
+                code="BAD_REQUEST",
+                message="자기 자신의 초대 링크는 수락할 수 없습니다.",
+                status_code=400,
+            )
+
+        updated_count = (
+            self.db.query(RelationshipInvitation)
+            .filter(
+                RelationshipInvitation.id == invitation.id,
+                RelationshipInvitation.status == "pending",
+            )
+            .update({"status": "accepted"}, synchronize_session=False)
+        )
+        if updated_count != 1:
+            self.db.rollback()
+            raise AppException(
+                code="CONFLICT",
+                message="이미 처리된 초대 링크입니다.",
+                status_code=409,
+            )
+        invitation.status = "accepted"
+
+        existing_relationship = self._get_existing_relationship(
+            first_user_id=invitation.requester_user_id,
+            second_user_id=current_user.id,
+        )
+        if existing_relationship is not None:
+            self._activate_invited_relationship(
+                relationship=existing_relationship,
+                relationship_type=invitation.relationship_type,
+            )
+            invitation.relationship_id = existing_relationship.id
+            self.db.add(invitation)
+            self.db.commit()
+            self.db.refresh(existing_relationship)
+            return existing_relationship
+
+        relationship = Relationship(
+            requester_user_id=invitation.requester_user_id,
+            target_user_id=current_user.id,
+            relationship_type=invitation.relationship_type,
+            status="accepted",
+            base_score=self.compatibility_engine.build_initial_base_score(
+                requester_user_id=invitation.requester_user_id,
+                target_user_id=current_user.id,
+                relationship_type=invitation.relationship_type,
+            ),
+        )
+        self.db.add(relationship)
+        self.db.flush()
+        invitation.relationship_id = relationship.id
+        self.db.add(invitation)
         self.db.commit()
         self.db.refresh(relationship)
         return relationship
@@ -135,6 +259,9 @@ class RelationshipService:
         self.db.query(WeeklyReport).filter(
             WeeklyReport.relationship_id == relationship.id,
         ).delete(synchronize_session=False)
+        self.db.query(RelationshipInvitation).filter(
+            RelationshipInvitation.relationship_id == relationship.id,
+        ).update({"relationship_id": None}, synchronize_session=False)
         self.db.delete(relationship)
         self.db.commit()
 
@@ -224,6 +351,27 @@ class RelationshipService:
             )
             .first()
         )
+
+    def _activate_invited_relationship(
+        self,
+        relationship: Relationship,
+        relationship_type: str,
+    ) -> None:
+        if relationship.status in {"rejected", "canceled"}:
+            raise AppException(
+                code="CONFLICT",
+                message="이미 종료된 관계 요청입니다.",
+                status_code=409,
+            )
+        relationship.status = "accepted"
+        relationship.relationship_type = relationship_type
+        if relationship.base_score is None:
+            relationship.base_score = self.compatibility_engine.build_initial_base_score(
+                requester_user_id=relationship.requester_user_id,
+                target_user_id=relationship.target_user_id,
+                relationship_type=relationship.relationship_type,
+            )
+        self.db.add(relationship)
 
     def _get_pending_relationship_for_target(
         self,

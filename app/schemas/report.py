@@ -15,3 +15,21 @@ class WeeklyReportResponseSchema(CamelModel):
     best_day: date | None = Field(default=None)
     worst_day: date | None = Field(default=None)
     summary: str
+
+
+class PeriodReportResponseSchema(CamelModel):
+    relationship_id: str
+    period_type: str = Field(examples=["monthly"])
+    period_start: date
+    period_end: date
+    average_score: int = Field(ge=0, le=100)
+    best_day: date | None = None
+    worst_day: date | None = None
+    summary: str
+    highlights: list[str]
+
+
+class PremiumHubResponseSchema(CamelModel):
+    free_features: list[str]
+    paid_features: list[str]
+    purchase_options: list[dict[str, str | int]]

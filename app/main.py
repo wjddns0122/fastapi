@@ -11,6 +11,7 @@ from app.models import letter as letter_model
 from app.models import mission as mission_model
 from app.models import relationship as relationship_model
 from app.models import relationship_activity as relationship_activity_model
+from app.models import relationship_invitation as relationship_invitation_model
 from app.models import user as user_model
 from app.models import weekly_report as weekly_report_model
 

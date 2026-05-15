@@ -36,6 +36,7 @@ class Letter(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     letter_type: Mapped[str] = mapped_column(String(20), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False)
+    condition_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     scheduled_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

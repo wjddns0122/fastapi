@@ -16,10 +16,12 @@ from app.services.behavior_service import BehaviorService
 from app.services.compatibility_engine import CompatibilityEngine
 from app.services.compatibility_service import CompatibilityService
 from app.services.compatibility_text_service import CompatibilityTextService
+from app.services.home_service import HomeService
 from app.services.letter_service import LetterService
 from app.services.mission_service import MissionService
 from app.services.relationship_service import RelationshipService
 from app.services.report_service import ReportService
+from app.services.reward_service import RewardService
 from app.services.tarot_service import TarotService
 from app.services.user_service import UserService
 
@@ -69,8 +71,25 @@ def get_mission_service(db: Session = Depends(get_db)) -> MissionService:
     return MissionService(db=db)
 
 
+def get_home_service(db: Session = Depends(get_db)) -> HomeService:
+    return HomeService(
+        db=db,
+        compatibility_service=CompatibilityService(
+            db=db,
+            behavior_service=BehaviorService(db=db),
+            compatibility_engine=CompatibilityEngine(),
+            compatibility_text_service=CompatibilityTextService(),
+        ),
+        mission_service=MissionService(db=db),
+    )
+
+
 def get_report_service(db: Session = Depends(get_db)) -> ReportService:
     return ReportService(db=db)
+
+
+def get_reward_service(db: Session = Depends(get_db)) -> RewardService:
+    return RewardService(db=db)
 
 
 def get_tarot_ai_client() -> Generator[GeminiAIClient, None, None]:

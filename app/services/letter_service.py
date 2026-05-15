@@ -27,6 +27,7 @@ class LetterService:
         receiver_user_id: str,
         content: str,
         letter_type: LetterType,
+        condition_type: str | None,
         scheduled_at: datetime | None,
     ) -> Letter:
         relationship = self._get_accessible_relationship(
@@ -49,10 +50,27 @@ class LetterService:
                 message="예약 편지는 scheduledAt이 필요합니다.",
                 status_code=422,
             )
+        if letter_type == "conditional" and condition_type is None:
+            raise AppException(
+                code="VALIDATION_ERROR",
+                message="조건부 편지는 conditionType이 필요합니다.",
+                status_code=422,
+            )
 
-        status = "sent" if letter_type == "instant" else "scheduled"
+        if letter_type == "draft":
+            status = "draft"
+        elif letter_type == "instant":
+            status = "sent"
+        elif letter_type == "conditional":
+            status = "conditional_pending"
+        else:
+            status = "scheduled"
         sent_at = datetime.now(UTC) if letter_type == "instant" else None
-        normalized_scheduled_at = None if letter_type == "instant" else scheduled_at
+        normalized_scheduled_at = (
+            scheduled_at
+            if letter_type in {"scheduled", "timecapsule"}
+            else None
+        )
         letter = Letter(
             relationship_id=relationship.id,
             sender_user_id=current_user.id,
@@ -60,6 +78,7 @@ class LetterService:
             content=content,
             letter_type=letter_type,
             status=status,
+            condition_type=condition_type,
             scheduled_at=normalized_scheduled_at,
             sent_at=sent_at,
         )
@@ -67,6 +86,30 @@ class LetterService:
         self.db.commit()
         self.db.refresh(letter)
         return letter
+
+    def list_templates(self) -> list[dict[str, str]]:
+        return [
+            {
+                "key": "thanks",
+                "title": "고마웠던 순간",
+                "prompt": "오늘 상대에게 고마웠던 순간을 한 문장으로 시작해보세요.",
+            },
+            {
+                "key": "sorry",
+                "title": "미안했던 순간",
+                "prompt": "먼저 미안하다고 말하고 싶은 일을 부드럽게 적어보세요.",
+            },
+            {
+                "key": "cheer",
+                "title": "응원 한마디",
+                "prompt": "상대가 오늘 버틸 힘이 될 짧은 응원을 남겨보세요.",
+            },
+            {
+                "key": "memory",
+                "title": "오늘 웃겼던 일",
+                "prompt": "둘이 함께 웃을 수 있는 가벼운 기억을 적어보세요.",
+            },
+        ]
 
     def list_letters(
         self,

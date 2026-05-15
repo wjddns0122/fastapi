@@ -15,6 +15,7 @@ Base = declarative_base()
 
 def initialize_database(target_engine: Engine | None = None) -> None:
     current_engine = target_engine or engine
+    _import_models()
     Base.metadata.create_all(bind=current_engine)
     apply_runtime_migrations(target_engine=current_engine)
 
@@ -29,6 +30,13 @@ def apply_runtime_migrations(target_engine: Engine | None = None) -> None:
         table_name="relationships",
         column_name="base_score",
         column_sql="INTEGER",
+    )
+    _ensure_column_exists(
+        target_engine=current_engine,
+        inspector=inspect(current_engine),
+        table_name="letters",
+        column_name="condition_type",
+        column_sql="VARCHAR(50)",
     )
 
 
@@ -53,3 +61,15 @@ def _ensure_column_exists(
         connection.execute(
             text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_sql}"),
         )
+
+
+def _import_models() -> None:
+    from app.models import daily_compatibility as daily_compatibility_model  # noqa: F401
+    from app.models import daily_tarot as daily_tarot_model  # noqa: F401
+    from app.models import letter as letter_model  # noqa: F401
+    from app.models import mission as mission_model  # noqa: F401
+    from app.models import relationship as relationship_model  # noqa: F401
+    from app.models import relationship_activity as relationship_activity_model  # noqa: F401
+    from app.models import relationship_invitation as relationship_invitation_model  # noqa: F401
+    from app.models import user as user_model  # noqa: F401
+    from app.models import weekly_report as weekly_report_model  # noqa: F401

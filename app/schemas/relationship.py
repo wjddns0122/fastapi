@@ -30,6 +30,34 @@ class CreateRelationshipRequestSchema(CamelModel):
     )
 
 
+class CreateSoloRelationshipRequestSchema(CamelModel):
+    """혼자 시작 관계 생성 요청 스키마"""
+
+    relationship_type: RelationshipType = Field(
+        default="friend",
+        description="혼자 시작할 관계 유형",
+        examples=["friend"],
+    )
+
+
+class CreateRelationshipInvitationRequestSchema(CamelModel):
+    """관계 초대 링크 생성 요청 스키마"""
+
+    relationship_type: RelationshipType = Field(
+        description="초대할 관계 유형",
+        examples=["couple"],
+    )
+
+
+class RelationshipInvitationResponseSchema(CamelModel):
+    """관계 초대 링크 응답 스키마"""
+
+    token: str = Field(description="초대 토큰", examples=["invite-token"])
+    invite_url: str = Field(description="초대 링크", examples=["https://example.com/invite/invite-token"])
+    relationship_type: RelationshipType = Field(examples=["couple"])
+    status: str = Field(examples=["pending"])
+
+
 class RelationshipCreateResponseSchema(CamelModel):
     """관계 생성/수정 응답 스키마"""
     model_config = ConfigDict(

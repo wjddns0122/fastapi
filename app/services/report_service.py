@@ -31,7 +31,7 @@ class ReportService:
             .filter(Relationship.id == relationship_id)
             .first()
         )
-        ensure_relationship_access(
+        relationship = ensure_relationship_access(
             relationship=relationship,
             current_user=current_user,
             forbidden_message="리포트를 조회할 권한이 없습니다.",
@@ -80,6 +80,86 @@ class ReportService:
                 if created_report is not None:
                     generated_count += 1
         return generated_count
+
+    def get_period_report(
+        self,
+        current_user: User,
+        relationship_id: str,
+        today: date,
+        period_type: str,
+    ) -> dict[str, object]:
+        relationship = (
+            self.db.query(Relationship)
+            .filter(Relationship.id == relationship_id)
+            .first()
+        )
+        relationship = ensure_relationship_access(
+            relationship=relationship,
+            current_user=current_user,
+            forbidden_message="리포트를 조회할 권한이 없습니다.",
+        )
+        period_start, period_end = self._period_range(today=today, period_type=period_type)
+        records = self._list_daily_compatibilities(
+            relationship_id=relationship_id,
+            week_start=period_start,
+            week_end=period_end,
+        )
+        if not records:
+            compatibility_service = CompatibilityService(
+                db=self.db,
+                behavior_service=BehaviorService(db=self.db),
+                compatibility_engine=CompatibilityEngine(),
+                compatibility_text_service=CompatibilityTextService(),
+            )
+            records = [
+                compatibility_service.ensure_daily_compatibility(
+                    relationship=relationship,
+                    target_date=today,
+                ),
+            ]
+
+        average_score = round(sum(record.final_score for record in records) / len(records))
+        best_record = max(records, key=lambda record: record.final_score)
+        worst_record = min(records, key=lambda record: record.final_score)
+
+        return {
+            "relationship_id": relationship_id,
+            "period_type": period_type,
+            "period_start": period_start,
+            "period_end": period_end,
+            "average_score": average_score,
+            "best_day": best_record.target_date,
+            "worst_day": worst_record.target_date,
+            "summary": self._build_summary(average_score=average_score),
+            "highlights": self._build_highlights(
+                average_score=average_score,
+                record_count=len(records),
+            ),
+        }
+
+    def get_premium_hub(self) -> dict[str, object]:
+        return {
+            "free_features": [
+                "today_compatibility",
+                "daily_tarot",
+                "letter_write",
+                "basic_missions",
+                "weekly_summary",
+            ],
+            "paid_features": [
+                "monthly_report",
+                "yearly_report",
+                "emotion_pattern",
+                "premium_tarot_spread",
+                "premium_letter_theme",
+                "report_pdf_export",
+            ],
+            "purchase_options": [
+                {"key": "premium_monthly", "label": "월 구독", "price": 4900},
+                {"key": "monthly_report", "label": "월간 리포트", "price": 2900},
+                {"key": "yearly_report", "label": "연간 리포트", "price": 9900},
+            ],
+        }
 
     def _create_weekly_report(
         self,
@@ -187,9 +267,35 @@ class ReportService:
         return week_start, week_start + timedelta(days=6)
 
     @staticmethod
+    def _period_range(today: date, period_type: str) -> tuple[date, date]:
+        if period_type == "yearly":
+            return date(today.year, 1, 1), date(today.year, 12, 31)
+
+        period_start = date(today.year, today.month, 1)
+        if today.month == 12:
+            next_month = date(today.year + 1, 1, 1)
+        else:
+            next_month = date(today.year, today.month + 1, 1)
+        return period_start, next_month - timedelta(days=1)
+
+    @staticmethod
     def _build_summary(average_score: int) -> str:
         if average_score >= 80:
             return "이번 주는 관계 흐름이 전반적으로 안정적이었습니다."
         if average_score >= 60:
             return "이번 주는 작은 배려가 관계에 긍정적으로 작용했습니다."
         return "이번 주는 감정 소모를 줄이고 천천히 대화하는 편이 좋습니다."
+
+    @staticmethod
+    def _build_highlights(average_score: int, record_count: int) -> list[str]:
+        if average_score >= 80:
+            tone = "관계 흐름이 안정적입니다."
+        elif average_score >= 60:
+            tone = "작은 행동이 점수 회복에 도움이 됩니다."
+        else:
+            tone = "대화 속도를 늦추는 편이 좋습니다."
+        return [
+            tone,
+            f"{record_count}일치 궁합 데이터를 반영했습니다.",
+            "편지와 미션 기록이 늘어날수록 리포트 정확도가 올라갑니다.",
+        ]
